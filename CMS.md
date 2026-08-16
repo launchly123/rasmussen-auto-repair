@@ -3,9 +3,33 @@
 The site pulls published edits from **https://cms-omega-seven.vercel.app**.
 
 ```
-GET /api/public/overrides/rasmussen-auto-repair
--> { "overrides": { "t12": "…", "i1": "https://…" } }
+GET /api/public/overrides/rasmussen-auto-repair?page=home
+-> { "overrides": { "t12": "…" }, "updated_at": "2026-08-16T06:06:08Z" }
 ```
+
+The console is **page-aware** — omitting `?page=` is a silent misconfiguration.
+
+## Registration (done 16 Aug 2026)
+
+The console needs two database rows before a site appears in it at all. Both
+exist for this site:
+
+| Row | Value |
+|---|---|
+| `websites.id` | `e3eb2631-1ee3-4bef-a95b-602844175e5c` |
+| `websites.slug` / `name` | `rasmussen-auto-repair` |
+| `websites.domain` | `rasmussen-auto-repair.vercel.app` (bare host — no protocol, no trailing slash) |
+| `websites.vercel_project_id` | `prj_43TYKlHgLseTqiHgRU0xYhsLk39A` |
+| `pages.id` | `04d5c5e7-57f7-4ad2-bcdd-ee6f2fcd4e01` |
+| `pages.slug` / `title` | `home` / `Home` |
+
+**Diagnosing registration from outside**, using the public endpoint:
+
+| Response | Meaning |
+|---|---|
+| no `updated_at` key at all | no `websites` row — the site is not registered |
+| `"updated_at": null` | `websites` row exists but **no matching `pages` row** → the editor shows "No pages yet" |
+| `"updated_at": "<timestamp>"` | fully registered — this is the healthy state |
 
 Public, `access-control-allow-origin: *`, cached ~30s — published edits go live
 within about half a minute. Implemented in
@@ -77,6 +101,24 @@ structured data. If they were CMS-editable, changing them on screen would
 silently desync what Google reads from what the page shows. **NAP and hours
 changes go through `business.ts` and a redeploy — not the console.**
 
+## The iframe hydration guard — do not remove it
+
+`src/app/layout.tsx` carries a `beforeInteractive` script that swallows one
+specific `SecurityError`. Without it **the editor canvas cannot load this site
+at all**.
+
+The console serves the site inside an iframe from its own origin with an
+injected `<base href>` pointing back here. Next's App Router calls
+`history.replaceState()` with a relative URL during hydration; the browser
+resolves it through `<base>` (our origin) but validates it against the
+document's real origin (the console's, since it served the bytes). The mismatch
+throws, hydration dies before the console's postMessage handshake, and the
+editor times out on "This page couldn't load".
+
+This affects **every** Next.js App Router site connected to this console. The
+right long-term fix is in the console's own `preview-html` bridge script, not
+repeated per client site.
+
 ## Verified on this build
 
 - SSR HTML and the hydrated DOM produce **identical** key sequences (129 text,
@@ -88,3 +130,12 @@ changes go through `business.ts` and a redeploy — not the console.**
   during our own writes so it cannot loop.
 - If the console is unreachable the fetch fails silently and the built-in
   content stays. A CMS outage cannot blank the site.
+- The traversal is **byte-identical** to the one on `punjab-auto-repair`, the
+  only integration verified working end to end. Keep it that way: a drift check
+  is a plain diff of the two `CmsOverrides.tsx` files.
+- The hydration guard was reproduced and fixed under a local harness that
+  replays the console's exact mechanism (proxy the real HTML from a second
+  origin, inject the same `<base>`, embed in an iframe): `SecurityError` without
+  the guard, clean with it.
+- Applying a simulated payload through the real traversal on the live site
+  changed **exactly** the three targeted elements and nothing else.
