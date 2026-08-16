@@ -72,11 +72,13 @@ export function CmsOverrides() {
           const el = all[i];
           if (el.tagName === "IMG") {
             if (el.closest("header,nav")) continue;
-            const ik = "i" + ii++;
-            if (overrides[ik]) (el as HTMLImageElement).src = overrides[ik];
+            const key = "i" + ii++;
+            const value = overrides[key];
+            if (value) (el as HTMLImageElement).src = value;
           } else if (isTextLeaf(el)) {
-            const tk = "t" + ti++;
-            if (overrides[tk] != null) el.textContent = overrides[tk];
+            const key = "t" + ti++;
+            const value = overrides[key];
+            if (value != null) el.textContent = value;
           }
         }
       } finally {
