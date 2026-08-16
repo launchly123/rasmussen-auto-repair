@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Archivo, Newsreader, IBM_Plex_Mono } from "next/font/google";
 import { business, siteUrl } from "@/lib/business";
 import { Header } from "@/components/Header";
@@ -108,6 +109,42 @@ export default function RootLayout({
         <StructuredData />
       </head>
       <body>
+        {/*
+          The Agency Console's visual editor loads this site inside an iframe
+          served from ITS OWN origin (cms-omega-seven.vercel.app), then injects
+          a <base href="https://this-site.vercel.app/"> so relative asset URLs
+          resolve against us instead of the console. Next's App Router calls
+          history.replaceState() with a relative URL during hydration; the
+          browser resolves that URL through <base> (giving our origin) but
+          validates it against the document's REAL origin (the console's — it
+          served the bytes). The mismatch throws an uncaught SecurityError that
+          kills hydration before the console's postMessage "ready" handshake
+          fires, so the editor times out on "This page couldn't load".
+
+          strategy="beforeInteractive" is required, not afterInteractive: this
+          must patch history before Next's own router runtime touches it.
+
+          This affects every Next.js App Router site connected to this console,
+          not just this one.
+        */}
+        <Script id="cms-iframe-history-guard" strategy="beforeInteractive">
+          {`
+            (function () {
+              if (window.self === window.top) return; // not embedded — leave History alone
+              ["pushState", "replaceState"].forEach(function (fn) {
+                var original = window.history[fn];
+                window.history[fn] = function () {
+                  try {
+                    return original.apply(this, arguments);
+                  } catch (e) {
+                    if (e instanceof DOMException && e.name === "SecurityError") return;
+                    throw e;
+                  }
+                };
+              });
+            })();
+          `}
+        </Script>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:bg-red focus:px-5 focus:py-3 focus:text-white"

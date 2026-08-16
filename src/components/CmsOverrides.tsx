@@ -24,10 +24,21 @@ import { useEffect } from "react";
  * unreachable — a CMS outage must never blank a client's site.
  */
 
-const CMS = "https://cms-omega-seven.vercel.app";
+/**
+ * Configurable so the console can be pointed elsewhere without a code change,
+ * but with working defaults baked in — "someone forgot to set the env var in
+ * Vercel" must not be a way for the CMS to silently do nothing.
+ */
+const CMS = process.env.NEXT_PUBLIC_CMS_URL || "https://cms-omega-seven.vercel.app";
 
 /** Must equal the Vercel project name. */
-const SLUG = "rasmussen-auto-repair";
+const SLUG = process.env.NEXT_PUBLIC_CMS_SLUG || "rasmussen-auto-repair";
+
+/**
+ * The console is page-aware. Naming the page "Home" in the console slugifies
+ * to "home", which is the row created for this site.
+ */
+const PAGE = process.env.NEXT_PUBLIC_CMS_PAGE || "home";
 
 const SKIP =
   "header,nav,a,button,script,style,svg,select,textarea,input,form,iframe";
@@ -73,7 +84,9 @@ export function CmsOverrides() {
       }
     };
 
-    fetch(`${CMS}/api/public/overrides/${SLUG}`)
+    fetch(
+      `${CMS}/api/public/overrides/${SLUG}?page=${encodeURIComponent(PAGE)}`,
+    )
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
