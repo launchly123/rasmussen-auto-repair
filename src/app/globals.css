@@ -1,26 +1,208 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ------------------------------------------------------------------ *
+ * Rasmussen Auto Repair — design tokens
+ * Dark, warm and mechanical. Red is an accent, never a surface.
+ * ------------------------------------------------------------------ */
+
+@theme {
+  /* Surfaces */
+  --color-ink: #0f1011;
+  --color-ink-800: #16181a;
+  --color-ink-700: #1e2124;
+  --color-ink-600: #2b2f33;
+  --color-paper: #f4f1ea;
+  --color-paper-2: #e8e3d9;
+  --color-paper-3: #d8d2c5;
+
+  /* Text */
+  --color-mute-dark: #9aa0a4; /* muted text on ink   — 7.4:1 */
+  --color-mute-light: #575d61; /* muted text on paper — 6.6:1 */
+  --color-steel: #8b9094;
+
+  /* Accent */
+  --color-red: #a32330;
+  --color-red-700: #861b26;
+  --color-red-300: #d0666f; /* accent text on dark surfaces */
+
+  /* Type */
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ------------------------------------------------------------------ *
+ * Base
+ * ------------------------------------------------------------------ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* Sticky header clearance for in-page anchors. */
+    scroll-padding-top: 5.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    /* Nothing on this page may cause a horizontal scrollbar. */
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: var(--color-red);
+    color: #fff;
+  }
+
+  /* Visible, on-brand focus ring on every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--color-red-300);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ------------------------------------------------------------------ *
+ * Utilities
+ * ------------------------------------------------------------------ */
+
+@utility container-x {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 78rem;
+  padding-inline: 1.25rem;
+  @media (width >= 48rem) {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* Small uppercase technical label — the "spec sheet" voice. */
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Oversized archival year/number type. */
+@utility display-serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.86;
+}
+
+/* Hairline rules that read as machined edges rather than borders. */
+@utility rule-dark {
+  border-color: color-mix(in oklab, var(--color-paper) 14%, transparent);
+}
+@utility rule-light {
+  border-color: color-mix(in oklab, var(--color-ink) 14%, transparent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Texture — a very quiet film grain so large flat panels don't look
+ * like flat CSS. Suppressed on coarse pointers to save paint cost.
+ * ------------------------------------------------------------------ */
+
+@utility grain {
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.30'/%3E%3C/svg%3E");
+  }
+}
+
+@media (pointer: coarse) {
+  .grain::after {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Scroll reveals
+ *
+ * The hidden state is NEVER the default. It is applied only under
+ * `html.js-reveal`, which an inline pre-paint script adds solely when the
+ * document is visible and motion is allowed. With no JS, a hidden tab, or
+ * reduced-motion, every section renders fully visible and nothing can strand
+ * the page at opacity:0.
+ *
+ * The hidden rule is written with :not() so it cannot lose to the revealed
+ * state on source order — the two selectors would otherwise tie on specificity.
+ * ------------------------------------------------------------------ */
+
+[data-reveal] {
+  transition:
+    opacity 0.85s var(--ease-out-soft),
+    transform 0.85s var(--ease-out-soft);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+html.js-reveal [data-reveal]:not([data-reveal="in"]) {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+}
+
+html.js-reveal [data-reveal="in"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Slow image reveal — a gentle scale-down settle, not a zoom effect. */
+html.js-reveal [data-reveal-media]:not([data-reveal-media="in"]) img {
+  transform: scale(1.06);
+  opacity: 0;
+}
+
+[data-reveal-media] img {
+  transition:
+    transform 1.4s var(--ease-out-soft),
+    opacity 1s var(--ease-out-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal],
+  [data-reveal-media] img {
+    transition: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
 }
