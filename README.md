@@ -19,6 +19,18 @@ npm run build
 | Customer reviews | `src/lib/testimonials.ts` |
 | Photo provenance — what is real, what is placeholder | `public/images/CREDITS.md` |
 | Page composition | `src/app/page.tsx` |
+| Agency Console (CMS) wiring, key map and hazards | [`CMS.md`](CMS.md) |
+
+## Live
+
+- Production: https://rasmussen-auto-repair.vercel.app
+- Repo: https://github.com/launchly123/rasmussen-auto-repair (private)
+- Vercel project: `lauchly/rasmussen-auto-repair` — pushes to `main` auto-deploy
+
+Content edits are published from the Agency Console under the slug
+`rasmussen-auto-repair`. **Read [`CMS.md`](CMS.md) before changing page
+structure** — CMS keys are position-based, so adding or removing an element
+shifts every key after it.
 
 `business.ts` is the single source of truth: the visible NAP, the footer, the
 `AutoRepair` structured data and the map links all read from it, so they cannot
